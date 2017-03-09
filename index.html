@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>select</title>
+	<style type="text/css">
+		* {
+			box-sizing: border-box;
+		}
+		select {
+			width: 100%;
+		}
+		span span {
+			margin: 10px 0 10px 10px;
+		}
+		span {
+			box-sizing: border-box;
+			width: 500px;
+			height: 100%;
+			display: inline-block;
+			border: 1px solid #15710a;
+			background-color: white;
+			padding: 5px;
+		}
+		span:hover {
+			background-color: #cdffc7;
+			box-shadow: -1px 1px 2px rgba(0,0,0,.4);
+			cursor: pointer;
+		}
+		small {
+			color: #888;
+		}
+		#profundidad {
+			position: fixed;
+			right: 0;
+			top: 0;
+			width: 80px;
+			height: 50px;
+			border: 1px solid blue;
+			display: flex;
+		    justify-content: center;
+		    align-items: center;
+		}
+	</style>
+</head>
+<body>
+<div id="resultados"></div>
+<div id="profundidad"></div>
+<script
+  src="https://code.jquery.com/jquery-3.1.1.min.js"
+  integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+  crossorigin="anonymous"></script>
+
+<script>
+$(function(){
+	let funciones = [];
+	let jerarquia = [];
+	const $resultados = $('#resultados');
+	const $profundidad = $('#profundidad');
+
+	$(document).on('mouseover', 'span', function (e) {
+		e.stopPropagation();
+		$profundidad.html('Nivel: '+ ($(this).parents('span').length + 1));
+	});
+
+	$.get({
+		dataType: 'json',
+		url: 'https://gobiernoabierto.cordoba.gob.ar/api/funciones/?page_size=400'
+	}).then(response => {
+		funciones = response.results;
+		procesar(funciones);
+	});
+
+	const procesar = funciones => {
+		funciones.map(f => {
+			jerarquia.push({
+				"id": f.cargo.id,
+				"nombre": f.cargo.oficina,
+				"padre": f.cargo.depende_de,
+				"funcionario": f.funcionario.nombrepublico
+			})
+		});
+		jerarquia.sort((a, b) => a.id - b.id);
+
+		imprimir(jerarquia, null);
+	}
+
+	const imprimir = (jerarquia, padre) => {
+		let res = jerarquia.filter(funcion => funcion.padre === padre);
+		if (res) {
+			res.map(funcion => {
+				let $lugar = $resultados.find(`span[data-id=${funcion.padre}]`);
+
+				if ($lugar.length > 0) {
+					$lugar.append(`<span data-id="${funcion.id}">${funcion.nombre} <small>(${funcion.funcionario})</small></span><br>`);
+				} else {
+					$resultados.append(`<span data-id="${funcion.id}">${funcion.nombre}</span>`);
+				}
+				imprimir(jerarquia, funcion.id);
+			});
+		}
+	}
+});
+</script>
+
+</body>
+</html>
